@@ -6449,6 +6449,7 @@ var Draft =
 	  return cx({
 	    'public/DraftStyleDefault/unorderedListItem': type === 'unordered-list-item',
 	    'public/DraftStyleDefault/orderedListItem': type === 'ordered-list-item',
+	    'public/DraftStyleDefault/checkableListItem': type === 'checkable-list-item',
 	    'public/DraftStyleDefault/reset': shouldResetCount,
 	    'public/DraftStyleDefault/depth0': depth === 0,
 	    'public/DraftStyleDefault/depth1': depth === 1,
@@ -7397,7 +7398,7 @@ var Draft =
 	    var content = editorState.getCurrentContent();
 	    var block = content.getBlockForKey(key);
 	    var type = block.getType();
-	    if (type !== 'unordered-list-item' && type !== 'ordered-list-item') {
+	    if (type !== 'unordered-list-item' && type !== 'ordered-list-item' && type !== 'checkable-list-item') {
 	      return editorState;
 	    }
 
@@ -7411,7 +7412,7 @@ var Draft =
 	    }
 
 	    var typeAbove = blockAbove.getType();
-	    if (typeAbove !== 'unordered-list-item' && typeAbove !== 'ordered-list-item') {
+	    if (typeAbove !== 'unordered-list-item' && typeAbove !== 'ordered-list-item' && typeAbove !== 'checkable-list-item') {
 	      return editorState;
 	    }
 
@@ -7829,7 +7830,7 @@ var Draft =
 
 	function canHaveDepth(block) {
 	  var type = block.getType();
-	  return type === 'ordered-list-item' || type === 'unordered-list-item';
+	  return type === 'ordered-list-item' || type === 'unordered-list-item' || type === 'checkable-list-item';
 	}
 
 	module.exports = convertFromDraftStateToRaw;
@@ -9402,6 +9403,7 @@ var Draft =
 	      return 'h6';
 	    case 'unordered-list-item':
 	    case 'ordered-list-item':
+	    case 'checkable-list-item':
 	      return 'li';
 	    case 'blockquote':
 	      return 'blockquote';
@@ -9649,6 +9651,7 @@ var Draft =
 	function getWrapperTemplateForBlockType(blockType) {
 	  switch (blockType) {
 	    case 'unordered-list-item':
+	    case 'checkable-list-item':
 	      return UL_WRAP;
 	    case 'ordered-list-item':
 	      return OL_WRAP;
