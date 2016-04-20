@@ -26,6 +26,7 @@ export type DraftBlockType = (
   'header-six' |
   'unordered-list-item' |
   'ordered-list-item' |
+  'checkable-list-item' |
   'blockquote' |
   'pullquote' |
   'code-block' |

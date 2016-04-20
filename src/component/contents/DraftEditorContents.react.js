@@ -225,6 +225,8 @@ function getListItemClasses(
       type === 'unordered-list-item',
     'public/DraftStyleDefault/orderedListItem':
       type === 'ordered-list-item',
+    'public/DraftStyleDefault/checkableListItem':
+      type === 'checkable-list-item',
     'public/DraftStyleDefault/reset': shouldResetCount,
     'public/DraftStyleDefault/depth0': depth === 0,
     'public/DraftStyleDefault/depth1': depth === 1,

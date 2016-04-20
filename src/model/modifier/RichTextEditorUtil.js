@@ -246,7 +246,11 @@ var RichTextEditorUtil = {
     var content = editorState.getCurrentContent();
     var block = content.getBlockForKey(key);
     var type = block.getType();
-    if (type !== 'unordered-list-item' && type !== 'ordered-list-item') {
+    if (
+      type !== 'unordered-list-item' &&
+      type !== 'ordered-list-item' &&
+      type !== 'checkable-list-item'
+    ) {
       return editorState;
     }
 
@@ -262,7 +266,8 @@ var RichTextEditorUtil = {
     var typeAbove = blockAbove.getType();
     if (
       typeAbove !== 'unordered-list-item' &&
-      typeAbove !== 'ordered-list-item'
+      typeAbove !== 'ordered-list-item' &&
+      typeAbove !== 'checkable-list-item'
     ) {
       return editorState;
     }

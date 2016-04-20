@@ -30,6 +30,7 @@ function getWrapperTemplateForBlockType(
 ): ?React.Element {
   switch (blockType) {
     case 'unordered-list-item':
+    case 'checkable-list-item':
       return UL_WRAP;
     case 'ordered-list-item':
       return OL_WRAP;

@@ -74,7 +74,11 @@ function convertFromDraftStateToRaw(
 
 function canHaveDepth(block: ContentBlock): boolean {
   var type = block.getType();
-  return type === 'ordered-list-item' || type === 'unordered-list-item';
+  return (
+    type === 'ordered-list-item' ||
+    type === 'unordered-list-item' ||
+    type === 'checkable-list-item'
+  );
 }
 
 module.exports = convertFromDraftStateToRaw;
