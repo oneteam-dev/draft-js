@@ -1467,7 +1467,8 @@ var Draft =
 	  type: 'unstyled',
 	  text: '',
 	  characterList: List(),
-	  depth: 0
+	  depth: 0,
+	  checked: false
 	};
 
 	var ContentBlockRecord = Record(defaultRecord);
@@ -1510,6 +1511,11 @@ var Draft =
 	    key: 'getDepth',
 	    value: function getDepth() {
 	      return this.get('depth');
+	    }
+	  }, {
+	    key: 'getChecked',
+	    value: function getChecked() {
+	      return this.get('checked');
 	    }
 	  }, {
 	    key: 'getInlineStyleAt',
@@ -3485,8 +3491,15 @@ var Draft =
 	  };
 	}
 
-	function getBlockDividerChunk(block, depth) {
-	  return {
+	function hasInputTypeCheckbox(node) {
+	  if (!node || !node.children) {
+	    return false;
+	  }
+	  return node.children[0].tagName.toLowerCase() === 'input' && node.children[0].type === 'checkbox';
+	}
+
+	function getBlockDividerChunk(block, depth, node) {
+	  var chunk = {
 	    text: '\r',
 	    inlines: [OrderedSet()],
 	    entities: new Array(1),
@@ -3495,9 +3508,13 @@ var Draft =
 	      depth: Math.max(0, Math.min(MAX_DEPTH, depth))
 	    }]
 	  };
+	  if (block === 'checkable-list-item' && hasInputTypeCheckbox(node)) {
+	    ret.blocks[0].checked = node.children[0].checked ? true : false;
+	  }
+	  return chunk;
 	}
 
-	function getBlockTypeForTag(tag, lastList) {
+	function getBlockTypeForTag(tag, lastList, node) {
 	  switch (tag) {
 	    case 'h1':
 	      return 'header-one';
@@ -3514,6 +3531,9 @@ var Draft =
 	    case 'li':
 	      if (lastList === 'ol') {
 	        return 'ordered-list-item';
+	      }
+	      if (node.classList.contains('task-list-item')) {
+	        return 'checkable-list-item';
 	      }
 	      return 'unordered-list-item';
 	    case 'blockquote':
@@ -3679,14 +3699,22 @@ var Draft =
 
 	  // Block Tags
 	  if (!inBlock && blockTags.indexOf(nodeName) !== -1) {
-	    chunk = getBlockDividerChunk(getBlockTypeForTag(nodeName, lastList), depth);
+	    chunk = getBlockDividerChunk(getBlockTypeForTag(nodeName, lastList, node), depth, node);
 	    inBlock = nodeName;
 	    newBlock = true;
 	  } else if (lastList && inBlock === 'li' && nodeName === 'li') {
-	    chunk = getBlockDividerChunk(getBlockTypeForTag(nodeName, lastList), depth);
+	    chunk = getBlockDividerChunk(getBlockTypeForTag(nodeName, lastList, node), depth, node);
 	    inBlock = nodeName;
 	    newBlock = true;
-	    nextBlockType = lastList === 'ul' ? 'unordered-list-item' : 'ordered-list-item';
+	    if (lastList === 'ul') {
+	      if (node.classList.contains('task-list-item')) {
+	        nextBlockType = 'checkable-list-item';
+	      } else {
+	        nextBlockType = 'unordered-list-item';
+	      }
+	    } else {
+	      nextBlockType = 'ordered-list-item';
+	    }
 	  }
 
 	  // Recurse through children
@@ -3810,6 +3838,7 @@ var Draft =
 	      key: generateRandomKey(),
 	      type: nullthrows(chunk).blocks[ii].type,
 	      depth: nullthrows(chunk).blocks[ii].depth,
+	      checked: nullthrows(chunk).blocks[ii].checked,
 	      text: textBlock,
 	      characterList: characterList
 	    });
