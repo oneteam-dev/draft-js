@@ -35,12 +35,14 @@ var defaultRecord: {
   text: string;
   characterList: List<CharacterMetadata>;
   depth: number;
+  checked: boolean;
 } = {
   key: '',
   type: 'unstyled',
   text: '',
   characterList: List(),
   depth: 0,
+  checked: false,
 };
 
 var ContentBlockRecord = Record(defaultRecord);
@@ -68,6 +70,10 @@ class ContentBlock extends ContentBlockRecord {
 
   getDepth(): number {
     return this.get('depth');
+  }
+
+  getChecked(): boolean {
+    return this.get('checked');
   }
 
   getInlineStyleAt(offset: number): DraftInlineStyle {

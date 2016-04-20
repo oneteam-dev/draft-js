@@ -109,8 +109,14 @@ function getSoftNewlineChunk(): Chunk {
   };
 }
 
-function getBlockDividerChunk(block: DraftBlockType, depth: number): Chunk {
-  return {
+function hasInputTypeCheckbox(node: ?Node): boolean {
+  if (!node || !node.children) { return false; }
+  return node.children[0].tagName.toLowerCase() === 'input' &&
+    node.children[0].type === 'checkbox';
+}
+
+function getBlockDividerChunk(block: DraftBlockType, depth: number, node: ?Node): Chunk {
+  var chunk = {
     text: '\r',
     inlines: [OrderedSet()],
     entities: new Array(1),
@@ -119,9 +125,13 @@ function getBlockDividerChunk(block: DraftBlockType, depth: number): Chunk {
       depth: Math.max(0, Math.min(MAX_DEPTH, depth)),
     }],
   };
+  if (block === 'checkable-list-item' && hasInputTypeCheckbox(node)) {
+    ret.blocks[0].checked = node.children[0].checked ? true : false;
+  }
+  return chunk;
 }
 
-function getBlockTypeForTag(tag: string, lastList: ?string): DraftBlockType {
+function getBlockTypeForTag(tag: string, lastList: ?string, node: ?Node): DraftBlockType {
   switch (tag) {
     case 'h1':
       return 'header-one';
@@ -138,6 +148,9 @@ function getBlockTypeForTag(tag: string, lastList: ?string): DraftBlockType {
     case 'li':
       if (lastList === 'ol') {
         return 'ordered-list-item';
+      }
+      if (node.classList.contains('task-list-item')) {
+        return 'checkable-list-item';
       }
       return 'unordered-list-item';
     case 'blockquote':
@@ -321,21 +334,29 @@ function genFragment(
   // Block Tags
   if (!inBlock && blockTags.indexOf(nodeName) !== -1) {
     chunk = getBlockDividerChunk(
-      getBlockTypeForTag(nodeName, lastList),
-      depth
+      getBlockTypeForTag(nodeName, lastList, node),
+      depth,
+      node
     );
     inBlock = nodeName;
     newBlock = true;
   } else if (lastList && inBlock === 'li' && nodeName === 'li') {
     chunk = getBlockDividerChunk(
-      getBlockTypeForTag(nodeName, lastList),
-      depth
+      getBlockTypeForTag(nodeName, lastList, node),
+      depth,
+      node
     );
     inBlock = nodeName;
     newBlock = true;
-    nextBlockType = lastList === 'ul' ?
-      'unordered-list-item' :
-      'ordered-list-item';
+    if (lastList === 'ul') {
+      if (node.classList.contains('task-list-item')) {
+        nextBlockType = 'checkable-list-item';
+      } else {
+        nextBlockType = 'unordered-list-item';
+      }
+    } else {
+      nextBlockType = 'ordered-list-item';
+    }
   }
 
   // Recurse through children
@@ -482,6 +503,7 @@ function convertFromHTMLtoContentBlocks(
         key: generateRandomKey(),
         type: nullthrows(chunk).blocks[ii].type,
         depth: nullthrows(chunk).blocks[ii].depth,
+        checked: nullthrows(chunk).blocks[ii].checked,
         text: textBlock,
         characterList,
       });
