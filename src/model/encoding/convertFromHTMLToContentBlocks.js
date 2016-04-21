@@ -155,7 +155,7 @@ function getBlockDividerChunk(block: DraftBlockType, depth: number, node: ?Node)
     }],
   };
   if (block === 'checkable-list-item' && hasInputTypeCheckbox(node)) {
-    ret.blocks[0].checked = node.children[0].checked ? true : false;
+    chunk.blocks[0].checked = node.children[0].checked ? true : false;
   }
   return chunk;
 }
