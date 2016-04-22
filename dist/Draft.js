@@ -3656,7 +3656,7 @@ var Draft =
 	  if (A.text.slice(-1) === '\r') {
 	    if (B.text === SPACE) {
 	      return A;
-	    } else if (B.text === '\n') {
+	    } else if (B.text === '\n' && A.text === '\r') {
 	      return B;
 	    } else if (lastInB === SPACE || lastInB === '\n') {
 	      B.text = B.text.slice(1);
