@@ -3654,8 +3654,10 @@ var Draft =
 
 	  // Kill whitespace after blocks
 	  if (A.text.slice(-1) === '\r') {
-	    if (B.text === SPACE || B.text === '\n') {
+	    if (B.text === SPACE) {
 	      return A;
+	    } else if (B.text === '\n') {
+	      return B;
 	    } else if (lastInB === SPACE || lastInB === '\n') {
 	      B.text = B.text.slice(1);
 	      B.inlines.shift();
