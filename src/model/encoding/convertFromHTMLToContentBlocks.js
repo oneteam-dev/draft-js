@@ -63,6 +63,7 @@ var MEDIA = {
   video: 'VIDEO',
   audio: 'AUDIO'
 };
+var IFRAME = 'IFRAME';
 
 // https://github.com/quilljs/quill/
 var OLD_COLORS = [
@@ -319,6 +320,13 @@ function hasValidLinkText(link: Node): boolean {
   return protocol === 'http:' || protocol === 'https:';
 }
 
+function getAttributes(node: Node): object {
+  return [].reduce.call(node.attributes, (result, { nodeName, nodeValue }) => {
+    result[nodeName] = nodeValue;
+    return result;
+  }, {});
+}
+
 function genFragment(
   node: Node,
   inlineStyle: DraftInlineStyle,
@@ -361,6 +369,22 @@ function genFragment(
       alt: node.alt,
       'data-original-url': node.parentNode.getAttribute('href')
     });
+    return {
+      text: '\r \r',
+      inlines: Array(3).fill(inlineStyle),
+      entities: Array(3).fill(entityKey),
+      blocks: [{
+        type: 'atomic',
+        depth
+      }, {
+        type: 'unstyled',
+        depth
+      }]
+    };
+  }
+
+  if (nodeName === 'iframe') {
+    var entityKey = DraftEntity.create(IFRAME, 'IMMUTABLE', getAttributes(node));
     return {
       text: '\r \r',
       inlines: Array(3).fill(inlineStyle),
