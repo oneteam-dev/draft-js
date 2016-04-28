@@ -467,7 +467,15 @@ function genFragment(
   while (child) {
     if (nodeName === 'a' && child.href && hasValidLinkText(child)) {
       href = new URI(child.href).toString();
-      entityId = DraftEntity.create('LINK', 'MUTABLE', {url: href});
+      if (child.hasAttribute('download')) {
+        entityId = DraftEntity.create('DOWNLOAD_LINK', 'MUTABLE', {
+          url: href,
+          name: child.getAttribute('data-name'),
+          size: child.getAttribute('data-size')
+        });
+      } else {
+        entityId = DraftEntity.create('LINK', 'MUTABLE', { url: href });
+      }
     } else {
       entityId = undefined;
     }
