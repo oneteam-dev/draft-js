@@ -3125,6 +3125,9 @@ var Draft =
 	        if (blockType === 'unordered-list-item' || blockType === 'ordered-list-item') {
 	          blockNode = blockNode.parentNode;
 	        }
+	        if (blockType === 'checkable-list-item') {
+	          blockNode = getClosestNodeBy(blockNode, 'ul');
+	        }
 	        var blockBottom = blockNode.offsetHeight + blockNode.offsetTop;
 	        var scrollBottom = scrollParent.offsetHeight + scrollPosition.y;
 	        scrollDelta = blockBottom - scrollBottom;
@@ -3227,6 +3230,27 @@ var Draft =
 
 	function isBlockOnSelectionEdge(selection, key) {
 	  return selection.getAnchorKey() === key || selection.getFocusKey() === key;
+	}
+
+	function getClosestNodeBy(_x4, _x5) {
+	  var _again2 = true;
+
+	  _function2: while (_again2) {
+	    var node = _x4,
+	        tagName = _x5;
+	    _again2 = false;
+	    var parentNode = node.parentNode;
+
+	    if (parentNode.nodeName.toLowerCase() === tagName) {
+	      return parentNode;
+	    } else {
+	      _x4 = parentNode;
+	      _x5 = tagName;
+	      _again2 = true;
+	      parentNode = undefined;
+	      continue _function2;
+	    }
+	  }
 	}
 
 	module.exports = DraftEditorBlock;
