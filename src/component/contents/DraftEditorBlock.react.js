@@ -111,6 +111,9 @@ class DraftEditorBlock extends React.Component {
       if (blockType === 'unordered-list-item' || blockType === 'ordered-list-item') {
         blockNode = blockNode.parentNode;
       }
+      if (blockType === 'checkable-list-item') {
+        blockNode = getClosestNodeBy(blockNode, 'ul');
+      }
       var blockBottom = blockNode.offsetHeight + blockNode.offsetTop;
       var scrollBottom = scrollParent.offsetHeight + scrollPosition.y;
       scrollDelta = blockBottom - scrollBottom;
@@ -224,6 +227,15 @@ function isBlockOnSelectionEdge(
     selection.getAnchorKey() === key ||
     selection.getFocusKey() === key
   );
+}
+
+function getClosestNodeBy(node: Node, tagName: string): Node {
+  const { parentNode } = node;
+  if (parentNode.nodeName.toLowerCase() === tagName) {
+    return parentNode;
+  } else {
+    return getClosestNodeBy(parentNode, tagName);
+  }
 }
 
 module.exports = DraftEditorBlock;
