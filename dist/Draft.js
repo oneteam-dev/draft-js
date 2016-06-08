@@ -87,7 +87,7 @@ var Draft =
 	var convertFromDraftStateToRaw = __webpack_require__(74);
 	var convertFromHTMLToContentBlocks = __webpack_require__(36);
 	var convertFromRawToDraftState = __webpack_require__(75);
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 	var getDefaultKeyBinding = __webpack_require__(37);
 	var getVisibleSelectionRect = __webpack_require__(100);
 
@@ -1046,39 +1046,6 @@ var Draft =
 
 /***/ },
 /* 7 */
-/***/ function(module, exports) {
-
-	/**
-	 * Copyright (c) 2013-present, Facebook, Inc.
-	 * All rights reserved.
-	 *
-	 * This source code is licensed under the BSD-style license found in the
-	 * LICENSE file in the root directory of this source tree. An additional grant
-	 * of patent rights can be found in the PATENTS file in the same directory.
-	 *
-	 * @providesModule generateRandomKey
-	 * @typechecks
-	 * 
-	 */
-
-	'use strict';
-
-	var seenKeys = {};
-	var MULTIPLIER = Math.pow(2, 24);
-
-	function generateRandomKey() {
-	  var key = undefined;
-	  while (key === undefined || seenKeys.hasOwnProperty(key) || !isNaN(+key)) {
-	    key = Math.floor(Math.random() * MULTIPLIER).toString(32);
-	  }
-	  seenKeys[key] = true;
-	  return key;
-	}
-
-	module.exports = generateRandomKey;
-
-/***/ },
-/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/**
@@ -1323,6 +1290,39 @@ var Draft =
 	};
 
 	module.exports = mapObject(UserAgent, memoizeStringOnly);
+
+/***/ },
+/* 8 */
+/***/ function(module, exports) {
+
+	/**
+	 * Copyright (c) 2013-present, Facebook, Inc.
+	 * All rights reserved.
+	 *
+	 * This source code is licensed under the BSD-style license found in the
+	 * LICENSE file in the root directory of this source tree. An additional grant
+	 * of patent rights can be found in the PATENTS file in the same directory.
+	 *
+	 * @providesModule generateRandomKey
+	 * @typechecks
+	 * 
+	 */
+
+	'use strict';
+
+	var seenKeys = {};
+	var MULTIPLIER = Math.pow(2, 24);
+
+	function generateRandomKey() {
+	  var key = undefined;
+	  while (key === undefined || seenKeys.hasOwnProperty(key) || !isNaN(+key)) {
+	    key = Math.floor(Math.random() * MULTIPLIER).toString(32);
+	  }
+	  seenKeys[key] = true;
+	  return key;
+	}
+
+	module.exports = generateRandomKey;
 
 /***/ },
 /* 9 */
@@ -2185,7 +2185,7 @@ var Draft =
 
 	'use strict';
 
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 	var removeEntitiesAtEdges = __webpack_require__(48);
 
 	function getContentStateFragment(contentState, selectionState) {
@@ -2275,7 +2275,7 @@ var Draft =
 	var Immutable = __webpack_require__(2);
 	var SelectionState = __webpack_require__(14);
 
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 	var sanitizeDraftText = __webpack_require__(25);
 
 	var List = Immutable.List;
@@ -2430,7 +2430,7 @@ var Draft =
 
 	'use strict';
 
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var isOSX = UserAgent.isPlatform('Mac OS X');
 
@@ -3446,7 +3446,7 @@ var Draft =
 	var Immutable = __webpack_require__(2);
 	var URI = __webpack_require__(121);
 
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 	var getSafeBodyFromHTML = __webpack_require__(99);
 	var invariant = __webpack_require__(3);
 	var nullthrows = __webpack_require__(5);
@@ -3995,7 +3995,7 @@ var Draft =
 
 	var KeyBindingUtil = __webpack_require__(22);
 	var Keys = __webpack_require__(26);
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var isOSX = UserAgent.isPlatform('Mac OS X');
 	var isWindows = UserAgent.isPlatform('Windows');
@@ -4330,7 +4330,7 @@ var Draft =
 
 	'use strict';
 
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var invariant = __webpack_require__(3);
 
@@ -5459,7 +5459,7 @@ var Draft =
 	var EditorState = __webpack_require__(1);
 	var Immutable = __webpack_require__(2);
 
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 
 	var List = Immutable.List;
 	var Repeat = Immutable.Repeat;
@@ -5788,11 +5788,11 @@ var Draft =
 	var ReactDOM = __webpack_require__(17);
 	var Scroll = __webpack_require__(50);
 	var Style = __webpack_require__(27);
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var cx = __webpack_require__(16);
 	var emptyFunction = __webpack_require__(29);
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 	var getDefaultKeyBinding = __webpack_require__(37);
 	var nullthrows = __webpack_require__(5);
 	var getScrollPosition = __webpack_require__(30);
@@ -6233,6 +6233,9 @@ var Draft =
 
 	var getEntityKeyForSelection = __webpack_require__(24);
 	var isSelectionAtLeafStart = __webpack_require__(45);
+	var UserAgent = __webpack_require__(7);
+
+	var isiOS = UserAgent.isPlatform('iOS');
 
 	/**
 	 * Millisecond delay to allow `compositionstart` to fire again upon
@@ -6349,7 +6352,7 @@ var Draft =
 	    var currentStyle = editorState.getCurrentInlineStyle();
 	    var entityKey = getEntityKeyForSelection(editorState.getCurrentContent(), editorState.getSelection());
 
-	    var mustReset = !composedChars || isSelectionAtLeafStart(editorState) || currentStyle.size > 0 || entityKey !== null;
+	    var mustReset = !isiOS && (!composedChars || isSelectionAtLeafStart(editorState) || currentStyle.size > 0 || entityKey !== null);
 
 	    if (mustReset) {
 	      this.restoreEditorDOM();
@@ -7078,7 +7081,7 @@ var Draft =
 
 	var React = __webpack_require__(12);
 	var ReactDOM = __webpack_require__(17);
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	// In IE, spans with <br> tags render as two newlines. By rendering a span
 	// with only a newline character, we can be sure to render a single line.
@@ -7296,7 +7299,7 @@ var Draft =
 	var Immutable = __webpack_require__(2);
 
 	var convertFromHTMLtoContentBlocks = __webpack_require__(36);
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 	var sanitizeDraftText = __webpack_require__(25);
 
 	var List = Immutable.List;
@@ -8018,7 +8021,7 @@ var Draft =
 	var createCharacterList = __webpack_require__(76);
 	var decodeEntityRanges = __webpack_require__(77);
 	var decodeInlineStyleRanges = __webpack_require__(78);
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 
 	function convertFromRawToDraftState(rawState) {
 	  var blocks = rawState.blocks;
@@ -8222,7 +8225,7 @@ var Draft =
 	var BlockTree = __webpack_require__(31);
 	var DraftModifier = __webpack_require__(4);
 	var EditorState = __webpack_require__(1);
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var getEntityKeyForSelection = __webpack_require__(24);
 	var isSelectionAtLeafStart = __webpack_require__(45);
@@ -8336,7 +8339,7 @@ var Draft =
 	'use strict';
 
 	var EditorState = __webpack_require__(1);
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var getActiveElement = __webpack_require__(53);
 
@@ -8636,7 +8639,7 @@ var Draft =
 	var DraftModifier = __webpack_require__(4);
 	var DraftOffsetKey = __webpack_require__(18);
 	var EditorState = __webpack_require__(1);
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var findAncestorOffsetKey = __webpack_require__(23);
 	var nullthrows = __webpack_require__(5);
@@ -8770,7 +8773,7 @@ var Draft =
 	var KeyBindingUtil = __webpack_require__(22);
 	var Keys = __webpack_require__(26);
 	var SecondaryClipboard = __webpack_require__(70);
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var keyCommandBackspaceToStartOfLine = __webpack_require__(104);
 	var keyCommandBackspaceWord = __webpack_require__(105);
@@ -9702,7 +9705,7 @@ var Draft =
 
 	'use strict';
 
-	var UserAgent = __webpack_require__(8);
+	var UserAgent = __webpack_require__(7);
 
 	var isOldIE = UserAgent.isBrowser('IE <= 9');
 
@@ -9841,7 +9844,7 @@ var Draft =
 
 	var BlockMapBuilder = __webpack_require__(13);
 
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 	var insertIntoList = __webpack_require__(44);
 	var invariant = __webpack_require__(3);
 
@@ -10794,7 +10797,7 @@ var Draft =
 
 	'use strict';
 
-	var generateRandomKey = __webpack_require__(7);
+	var generateRandomKey = __webpack_require__(8);
 	var invariant = __webpack_require__(3);
 
 	function splitBlockInContentState(contentState, selectionState) {
