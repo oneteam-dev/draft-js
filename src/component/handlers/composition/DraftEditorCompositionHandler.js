@@ -18,6 +18,9 @@ const Keys = require('Keys');
 
 const getEntityKeyForSelection = require('getEntityKeyForSelection');
 const isSelectionAtLeafStart = require('isSelectionAtLeafStart');
+const UserAgent = require('UserAgent');
+
+const isiOS = UserAgent.isPlatform('iOS');
 
 /**
  * Millisecond delay to allow `compositionstart` to fire again upon
@@ -136,10 +139,12 @@ var DraftEditorCompositionHandler = {
     );
 
     const mustReset = (
-      !composedChars ||
-      isSelectionAtLeafStart(editorState) ||
-      currentStyle.size > 0 ||
-      entityKey !== null
+      !isiOS && (
+        !composedChars ||
+        isSelectionAtLeafStart(editorState) ||
+        currentStyle.size > 0 ||
+        entityKey !== null
+      )
     );
 
     if (mustReset) {
