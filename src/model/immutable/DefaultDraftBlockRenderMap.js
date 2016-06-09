@@ -40,6 +40,10 @@ module.exports = Map({
   'header-six': {
     element: 'h6',
   },
+  'checkable-list-item': {
+    element: 'li',
+    wrapper: UL_WRAP,
+  },
   'unordered-list-item': {
     element: 'li',
     wrapper: UL_WRAP,
