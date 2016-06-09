@@ -13,6 +13,7 @@
 
 'use strict';
 
+const DefaultDraftBlockRenderMap = require('DefaultDraftBlockRenderMap');
 const DefaultDraftInlineStyle = require('DefaultDraftInlineStyle');
 const DraftEditorCompositionHandler = require('DraftEditorCompositionHandler');
 const DraftEditorContents = require('DraftEditorContents.react');
@@ -34,7 +35,6 @@ const nullthrows = require('nullthrows');
 const getScrollPosition = require('getScrollPosition');
 
 import type {BlockMap} from 'BlockMap';
-import type ContentBlock from 'ContentBlock';
 import type {DraftEditorModes} from 'DraftEditorModes';
 import type {DraftEditorProps} from 'DraftEditorProps';
 import type {DraftScrollPosition} from 'DraftScrollPosition';
@@ -55,15 +55,6 @@ const handlerMap = {
   'render': null,
 };
 
-type DefaultProps = {
-  blockRendererFn?: (block: ContentBlock) => ?Object;
-  blockStyleFn?: (type: number) => string,
-  keyBindingFn?: (e: SyntheticKeyboardEvent) => ?string,
-  readOnly?: boolean,
-  spellCheck?: boolean,
-  stripPastedStyles?: boolean,
-};
-
 type State = {
   containerKey: number,
 };
@@ -73,11 +64,12 @@ type State = {
  * div, and provides a wide variety of useful function props for managing the
  * state of the editor. See `DraftEditorProps` for details.
  */
-class DraftEditor
-  extends React.Component<DefaultProps, DraftEditorProps, State> {
+class DraftEditor extends React.Component {
+  props: DraftEditorProps;
   state: State;
 
   static defaultProps = {
+    blockRenderMap: DefaultDraftBlockRenderMap,
     blockRendererFn: emptyFunction.thatReturnsNull,
     blockStyleFn: emptyFunction.thatReturns(''),
     keyBindingFn: getDefaultKeyBinding,
@@ -92,6 +84,7 @@ class DraftEditor
   _handler: ?Object;
   _dragCount: number;
   _editorKey: string;
+  _placeholderAccessibilityID: string;
 
   /**
    * Define proxies that can route events to the current handler.
@@ -140,6 +133,7 @@ class DraftEditor
     this._handler = null;
     this._dragCount = 0;
     this._editorKey = generateRandomKey();
+    this._placeholderAccessibilityID = 'placeholder-' + this._editorKey;
 
     this._onBeforeInput = this._buildHandler('onBeforeInput');
     this._onBlur = this._buildHandler('onBlur');
@@ -195,26 +189,29 @@ class DraftEditor
     };
   }
 
-  _renderPlaceholder(): ?React.Element {
-    const content = this.props.editorState.getCurrentContent();
-    const showPlaceholder = (
-      this.props.placeholder &&
+  _showPlaceholder(): boolean {
+    return (
+      !!this.props.placeholder &&
       !this.props.editorState.isInCompositionMode() &&
-      !content.hasText()
+      !this.props.editorState.getCurrentContent().hasText()
     );
+  }
 
-    if (showPlaceholder) {
+  _renderPlaceholder(): ?React.Element<any> {
+    if (this._showPlaceholder()) {
       return (
         <DraftEditorPlaceholder
           text={nullthrows(this.props.placeholder)}
           editorState={this.props.editorState}
           textAlignment={this.props.textAlignment}
+          accessibilityID={this._placeholderAccessibilityID}
         />
       );
     }
+    return null;
   }
 
-  render(): React.Element {
+  render(): React.Element<any> {
     const {readOnly, textAlignment} = this.props;
     const rootClass = cx({
       'DraftEditor/root': true,
@@ -242,7 +239,9 @@ class DraftEditor
               readOnly ? null : this.props.ariaActiveDescendantID
             }
             aria-autocomplete={readOnly ? null : this.props.ariaAutoComplete}
-            aria-describedby={this.props.ariaDescribedBy}
+            aria-describedby={
+              this._showPlaceholder() ? this._placeholderAccessibilityID : null
+            }
             aria-expanded={readOnly ? null : this.props.ariaExpanded}
             aria-haspopup={readOnly ? null : this.props.ariaHasPopup}
             aria-label={this.props.ariaLabel}
@@ -275,11 +274,11 @@ class DraftEditor
             spellCheck={allowSpellCheck && this.props.spellCheck}
             style={contentStyle}
             suppressContentEditableWarning
-            tabIndex={this.props.tabIndex}
-            title={hasContent ? null : this.props.placeholder}>
+            tabIndex={this.props.tabIndex}>
             <DraftEditorContents
-              blockRendererFn={nullthrows(this.props.blockRendererFn)}
-              blockStyleFn={nullthrows(this.props.blockStyleFn)}
+              blockRenderMap={this.props.blockRenderMap}
+              blockRendererFn={this.props.blockRendererFn}
+              blockStyleFn={this.props.blockStyleFn}
               customStyleMap={
                 {...DefaultDraftInlineStyle, ...this.props.customStyleMap}
               }

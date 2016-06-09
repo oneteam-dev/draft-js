@@ -33,12 +33,22 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     <script type="text/babel">
       'use strict';
 
-      const {Editor, EditorState, RichUtils} = Draft;
+      const {
+        Editor,
+        EditorState,
+        RichUtils,
+        DefaultDraftBlockRenderMap,
+      } = Draft;
+
+      const {Map} = Immutable;
 
       class RichEditorExample extends React.Component {
         constructor(props) {
           super(props);
-          this.state = {editorState: EditorState.createEmpty()};
+
+          this.state = {
+            editorState: EditorState.createEmpty(),
+          };
 
           this.focus = () => this.refs.editor.focus();
           this.onChange = (editorState) => this.setState({editorState});

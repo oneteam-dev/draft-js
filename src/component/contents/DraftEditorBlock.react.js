@@ -39,7 +39,7 @@ const SCROLL_BUFFER = 10;
 type Props = {
   block: ContentBlock,
   customStyleMap: Object,
-  tree: List,
+  tree: List<any>,
   selection: SelectionState,
   decorator: DraftDecoratorType,
   forceSelection: boolean,
@@ -126,7 +126,7 @@ class DraftEditorBlock extends React.Component {
     }
   }
 
-  _renderChildren(): Array<React.Element> {
+  _renderChildren(): Array<React.Element<any>> {
     var block = this.props.block;
     var blockKey = block.getKey();
     var text = block.getText();
@@ -200,7 +200,7 @@ class DraftEditorBlock extends React.Component {
     }).toArray();
   }
 
-  render(): React.Element {
+  render(): React.Element<any> {
     const {direction, offsetKey} = this.props;
     const className = cx({
       'public/DraftStyleDefault/block': true,
