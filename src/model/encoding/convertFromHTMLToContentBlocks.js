@@ -179,7 +179,7 @@ function getBlockTypeForTag(tag: string, lastList: ?string, node: ?Node): DraftB
       if (lastList === 'ol') {
         return 'ordered-list-item';
       }
-      if (node.classList.contains('task-list-item')) {
+      if (node && node.classList.contains('task-list-item')) {
         return 'checkable-list-item';
       }
       return 'unordered-list-item';
