@@ -188,11 +188,11 @@ function getBlockTypeForTag(tag: string, lastList: ?string, node: ?Node): DraftB
     case 'pre':
       return 'code-block';
     case 'div':
-      if (node.style.textAlign === 'center') {
+      if (node && node.style.textAlign === 'center') {
         return OLD_BLOCK_TYPES.ALIGN_CENTER;
-      } else if (node.style.textAlign === 'right') {
+      } else if (node && node.style.textAlign === 'right') {
         return OLD_BLOCK_TYPES.ALIGN_RIGHT;
-      } else if (node.style.textAlign === 'justify') {
+      } else if (node && node.style.textAlign === 'justify') {
         return OLD_BLOCK_TYPES.ALIGN_JUSTIFY;
       } else {
         return 'unstyled';
@@ -406,7 +406,7 @@ function genFragment(
   if (nodeName === 'br') {
     if (
         lastLastBlock === 'br' &&
-        (!inBlock || getBlockTypeForTag(inBlock, lastList) === 'unstyled')
+        (!inBlock || getBlockTypeForTag(inBlock, lastList, node) === 'unstyled')
     ) {
       return getBlockDividerChunk('unstyled', depth);
     }
