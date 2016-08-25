@@ -320,11 +320,19 @@ function hasValidLinkText(link: Node): boolean {
   return protocol === 'http:' || protocol === 'https:';
 }
 
-function getAttributes(node: Node): object {
+function getAttributes(node: Node): Object {
   return [].reduce.call(node.attributes, (result, { nodeName, nodeValue }) => {
     result[nodeName] = nodeValue;
     return result;
   }, {});
+}
+
+function isTextAndHrefSameValue(node: Node): boolean {
+  return node.getAttribute('href') === node.innerText;
+}
+
+function shouldCreateLinkEntity(nodeName: String, child: Node): boolean {
+  return nodeName === 'a' && child.href && hasValidLinkText(child) && !isTextAndHrefSameValue(child);
 }
 
 function genFragment(
@@ -465,7 +473,7 @@ function genFragment(
   var href: ?string = null;
 
   while (child) {
-    if (nodeName === 'a' && child.href && hasValidLinkText(child)) {
+    if (shouldCreateLinkEntity(nodeName, child)) {
       href = new URI(child.href).toString();
       if (child.hasAttribute('download')) {
         entityId = DraftEntity.create('DOWNLOAD_LINK', 'MUTABLE', {
