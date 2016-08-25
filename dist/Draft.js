@@ -918,7 +918,7 @@ var Draft =
 	 * 
 	 */
 
-	var nullthrows = function (x) {
+	var nullthrows = function nullthrows(x) {
 	  if (x != null) {
 	    return x;
 	  }
@@ -1199,8 +1199,7 @@ var Draft =
 	   * @param {string} query Query of the form "Name [range expression]"
 	   * @return {boolean}
 	   */
-
-	  isBrowser: function (query) {
+	  isBrowser: function isBrowser(query) {
 	    return compare(UserAgentData.browserName, UserAgentData.browserFullVersion, query);
 	  },
 
@@ -1213,7 +1212,7 @@ var Draft =
 	   * @param {string} query Query of the form "32" or "64".
 	   * @return {boolean}
 	   */
-	  isBrowserArchitecture: function (query) {
+	  isBrowserArchitecture: function isBrowserArchitecture(query) {
 	    return compare(UserAgentData.browserArchitecture, null, query);
 	  },
 
@@ -1242,7 +1241,7 @@ var Draft =
 	   * @param {string} query Query of the form "Name"
 	   * @return {boolean}
 	   */
-	  isDevice: function (query) {
+	  isDevice: function isDevice(query) {
 	    return compare(UserAgentData.deviceName, null, query);
 	  },
 
@@ -1269,7 +1268,7 @@ var Draft =
 	   * @param {string} query Query of the form "Name [range expression]"
 	   * @return {boolean}
 	   */
-	  isEngine: function (query) {
+	  isEngine: function isEngine(query) {
 	    return compare(UserAgentData.engineName, UserAgentData.engineVersion, query);
 	  },
 
@@ -1309,7 +1308,7 @@ var Draft =
 	   * @param {string} query Query of the form "Name [range expression]"
 	   * @return {boolean}
 	   */
-	  isPlatform: function (query) {
+	  isPlatform: function isPlatform(query) {
 	    return compare(UserAgentData.platformName, UserAgentData.platformFullVersion, query, normalizePlatformVersion);
 	  },
 
@@ -1322,7 +1321,7 @@ var Draft =
 	   * @param {string} query Query of the form "32" or "64".
 	   * @return {boolean}
 	   */
-	  isPlatformArchitecture: function (query) {
+	  isPlatformArchitecture: function isPlatformArchitecture(query) {
 	    return compare(UserAgentData.platformArchitecture, null, query);
 	  }
 	};
@@ -2735,7 +2734,7 @@ var Draft =
 	   * @param {?DOMNode} node Node from which to start searching.
 	   * @return {?DOMWindow|DOMElement} Scroll parent of the supplied node.
 	   */
-	  getScrollParent: function (node) {
+	  getScrollParent: function getScrollParent(node) {
 	    if (!node) {
 	      return null;
 	    }
@@ -2879,6 +2878,7 @@ var Draft =
 	 * LICENSE file in the root directory of this source tree. An additional grant
 	 * of patent rights can be found in the PATENTS file in the same directory.
 	 *
+	 * 
 	 */
 
 	function makeEmptyFunction(arg) {
@@ -2892,7 +2892,7 @@ var Draft =
 	 * primarily useful idiomatically for overridable function endpoints which
 	 * always need to be callable, since JS lacks a null-call idiom ala Cocoa.
 	 */
-	function emptyFunction() {}
+	var emptyFunction = function emptyFunction() {};
 
 	emptyFunction.thatReturns = makeEmptyFunction;
 	emptyFunction.thatReturnsFalse = makeEmptyFunction(false);
@@ -3905,6 +3905,14 @@ var Draft =
 	  }, {});
 	}
 
+	function isTextAndHrefSameValue(node) {
+	  return node.getAttribute('href') === node.innerText;
+	}
+
+	function shouldCreateLinkEntity(nodeName, child) {
+	  return nodeName === 'a' && child.href && hasValidLinkText(child) && !isTextAndHrefSameValue(child);
+	}
+
 	function genFragment(node, inlineStyle, lastList, inBlock, blockTags, depth, inEntity) {
 	  var nodeName = node.nodeName.toLowerCase();
 	  var newBlock = false;
@@ -4026,7 +4034,7 @@ var Draft =
 	  var href = null;
 
 	  while (child) {
-	    if (nodeName === 'a' && child.href && hasValidLinkText(child)) {
+	    if (shouldCreateLinkEntity(nodeName, child)) {
 	      href = new URI(child.href).toString();
 	      if (child.hasAttribute('download')) {
 	        entityId = DraftEntity.create('DOWNLOAD_LINK', 'MUTABLE', {
@@ -5086,7 +5094,6 @@ var Draft =
 	  /**
 	   * @param {object} data
 	   */
-
 	  function DataTransfer(data) {
 	    _classCallCheck(this, DataTransfer);
 
@@ -5168,7 +5175,7 @@ var Draft =
 
 	  DataTransfer.prototype.isLink = function isLink() {
 	    return this.types.some(function (type) {
-	      return type.indexOf('Url') != -1 || type.indexOf('text/uri-list') != -1;
+	      return type.indexOf('Url') != -1 || type.indexOf('text/uri-list') != -1 || type.indexOf('text/x-moz-url');
 	    });
 	  };
 
@@ -5181,6 +5188,10 @@ var Draft =
 
 	  DataTransfer.prototype.getLink = function getLink() {
 	    if (this.data.getData) {
+	      if (this.types.indexOf('text/x-moz-url') != -1) {
+	        var url = this.data.getData('text/x-moz-url').split('\n');
+	        return url[0];
+	      }
 	      return this.types.indexOf('text/uri-list') != -1 ? this.data.getData('text/uri-list') : this.data.getData('url');
 	    }
 
@@ -5304,7 +5315,7 @@ var Draft =
 	   * @param {DOMElement} element
 	   * @return {number}
 	   */
-	  getTop: function (element) {
+	  getTop: function getTop(element) {
 	    var doc = element.ownerDocument;
 	    return _isViewportScrollElement(element, doc) ?
 	    // In practice, they will either both have the same value,
@@ -5317,7 +5328,7 @@ var Draft =
 	   * @param {DOMElement} element
 	   * @param {number} newTop
 	   */
-	  setTop: function (element, newTop) {
+	  setTop: function setTop(element, newTop) {
 	    var doc = element.ownerDocument;
 	    if (_isViewportScrollElement(element, doc)) {
 	      doc.body.scrollTop = doc.documentElement.scrollTop = newTop;
@@ -5330,7 +5341,7 @@ var Draft =
 	   * @param {DOMElement} element
 	   * @return {number}
 	   */
-	  getLeft: function (element) {
+	  getLeft: function getLeft(element) {
 	    var doc = element.ownerDocument;
 	    return _isViewportScrollElement(element, doc) ? doc.body.scrollLeft || doc.documentElement.scrollLeft : element.scrollLeft;
 	  },
@@ -5339,7 +5350,7 @@ var Draft =
 	   * @param {DOMElement} element
 	   * @param {number} newLeft
 	   */
-	  setLeft: function (element, newLeft) {
+	  setLeft: function setLeft(element, newLeft) {
 	    var doc = element.ownerDocument;
 	    if (_isViewportScrollElement(element, doc)) {
 	      doc.body.scrollLeft = doc.documentElement.scrollLeft = newLeft;
@@ -5526,7 +5537,7 @@ var Draft =
 	 * LICENSE file in the root directory of this source tree. An additional grant
 	 * of patent rights can be found in the PATENTS file in the same directory.
 	 *
-	 * @typechecks
+	 * 
 	 */
 
 	var isTextNode = __webpack_require__(134);
@@ -5535,10 +5546,6 @@ var Draft =
 
 	/**
 	 * Checks if a given DOM node contains or is another DOM node.
-	 *
-	 * @param {?DOMNode} outerNode Outer DOM node.
-	 * @param {?DOMNode} innerNode Inner DOM node.
-	 * @return {boolean} True if `outerNode` contains or is `innerNode`.
 	 */
 	function containsNode(outerNode, innerNode) {
 	  if (!outerNode || !innerNode) {
@@ -5549,7 +5556,7 @@ var Draft =
 	    return false;
 	  } else if (isTextNode(innerNode)) {
 	    return containsNode(outerNode, innerNode.parentNode);
-	  } else if (outerNode.contains) {
+	  } else if ('contains' in outerNode) {
 	    return outerNode.contains(innerNode);
 	  } else if (outerNode.compareDocumentPosition) {
 	    return !!(outerNode.compareDocumentPosition(innerNode) & 16);
@@ -10884,10 +10891,10 @@ var Draft =
 	 *
 	 */
 	var PhotosMimeType = {
-	  isImage: function (mimeString) {
+	  isImage: function isImage(mimeString) {
 	    return getParts(mimeString)[0] === 'image';
 	  },
-	  isJpeg: function (mimeString) {
+	  isJpeg: function isJpeg(mimeString) {
 	    var parts = getParts(mimeString);
 	    return PhotosMimeType.isImage(mimeString) && (
 	    // see http://fburl.com/10972194
@@ -10938,7 +10945,7 @@ var Draft =
 	var PUNCTUATION = '[.,+*?$|#{}()\'\\^\\-\\[\\]\\\\\\/!@%"~=<>_:;' + '・、。〈-】〔-〟：-？！-／' + '［-｀｛-･⸮؟٪-٬؛،؍' + '﴾﴿᠁।၊။‐-‧‰-⁞' + '¡-±´-¸º»¿]';
 
 	module.exports = {
-	  getPunctuation: function () {
+	  getPunctuation: function getPunctuation() {
 	    return PUNCTUATION;
 	  }
 	};
@@ -11040,7 +11047,6 @@ var Draft =
 	   *
 	   * @param defaultDir  Default direction of the service
 	   */
-
 	  function UnicodeBidiService(defaultDir) {
 	    _classCallCheck(this, UnicodeBidiService);
 
@@ -11554,8 +11560,7 @@ var Draft =
 	   * @param {string} version
 	   * @returns {boolean}
 	   */
-
-	  contains: function (range, version) {
+	  contains: function contains(range, version) {
 	    return checkOrExpression(range.trim(), version.trim());
 	  }
 	};
@@ -11675,7 +11680,7 @@ var Draft =
 	 * @return {boolean}
 	 */
 	function hasArrayNature(obj) {
-	  return(
+	  return (
 	    // not null/false
 	    !!obj && (
 	    // arrays are objects, NodeLists are functions in Safari
@@ -12226,6 +12231,7 @@ var Draft =
 	 * LICENSE file in the root directory of this source tree. An additional grant
 	 * of patent rights can be found in the PATENTS file in the same directory.
 	 *
+	 * 
 	 * @typechecks static-only
 	 */
 
@@ -12233,9 +12239,6 @@ var Draft =
 
 	/**
 	 * Memoizes the return value of a function that accepts one string argument.
-	 *
-	 * @param {function} callback
-	 * @return {function}
 	 */
 
 	function memoizeStringOnly(callback) {
