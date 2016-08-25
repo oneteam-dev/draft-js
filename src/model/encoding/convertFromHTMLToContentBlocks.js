@@ -327,6 +327,14 @@ function getAttributes(node: Node): Object {
   }, {});
 }
 
+function isTextAndHrefSameValue(node: Node): boolean {
+  return node.getAttribute('href') === node.innerText;
+}
+
+function shouldCreateLinkEntity(nodeName: String, child: Node): boolean {
+  return nodeName === 'a' && child.href && hasValidLinkText(child) && !isTextAndHrefSameValue(child);
+}
+
 function genFragment(
   node: Node,
   inlineStyle: DraftInlineStyle,
@@ -465,7 +473,7 @@ function genFragment(
   var href: ?string = null;
 
   while (child) {
-    if (nodeName === 'a' && child.href && hasValidLinkText(child)) {
+    if (shouldCreateLinkEntity(nodeName, child)) {
       href = new URI(child.href).toString();
       if (child.hasAttribute('download')) {
         entityId = DraftEntity.create('DOWNLOAD_LINK', 'MUTABLE', {
