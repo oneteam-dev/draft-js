@@ -320,7 +320,7 @@ function hasValidLinkText(link: Node): boolean {
   return protocol === 'http:' || protocol === 'https:';
 }
 
-function getAttributes(node: Node): object {
+function getAttributes(node: Node): Object {
   return [].reduce.call(node.attributes, (result, { nodeName, nodeValue }) => {
     result[nodeName] = nodeValue;
     return result;
