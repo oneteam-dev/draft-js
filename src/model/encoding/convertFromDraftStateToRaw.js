@@ -18,7 +18,6 @@ var DraftStringKey = require('DraftStringKey');
 var encodeEntityRanges = require('encodeEntityRanges');
 var encodeInlineStyleRanges = require('encodeInlineStyleRanges');
 
-import type ContentBlock from 'ContentBlock';
 import type ContentState from 'ContentState';
 import type {RawDraftContentState} from 'RawDraftContentState';
 
@@ -47,9 +46,10 @@ function convertFromDraftStateToRaw(
       key: blockKey,
       text: block.getText(),
       type: block.getType(),
-      depth: canHaveDepth(block) ? block.getDepth() : 0,
+      depth: block.getDepth(),
       inlineStyleRanges: encodeInlineStyleRanges(block),
       entityRanges: encodeEntityRanges(block, entityStorageMap),
+      data: block.getData().toObject(),
     });
   });
 
@@ -70,15 +70,6 @@ function convertFromDraftStateToRaw(
     entityMap: flippedStorageMap,
     blocks: rawBlocks,
   };
-}
-
-function canHaveDepth(block: ContentBlock): boolean {
-  var type = block.getType();
-  return (
-    type === 'ordered-list-item' ||
-    type === 'unordered-list-item' ||
-    type === 'checkable-list-item'
-  );
 }
 
 module.exports = convertFromDraftStateToRaw;
