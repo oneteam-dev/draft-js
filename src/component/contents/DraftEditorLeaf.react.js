@@ -30,6 +30,9 @@ type Props = {
   // Mapping of style names to CSS declarations.
   customStyleMap: Object,
 
+  // Function that maps style names to CSS style objects.
+  customStyleFn: Function,
+
   // Whether to force the DOM selection after render.
   forceSelection: boolean,
 
@@ -129,8 +132,8 @@ class DraftEditorLeaf extends React.Component {
       text += '\n';
     }
 
-    const {customStyleMap, offsetKey, styleSet} = this.props;
-    const styleObj = styleSet.reduce((map, styleName) => {
+    const {customStyleMap, customStyleFn, offsetKey, styleSet} = this.props;
+    let styleObj = styleSet.reduce((map, styleName) => {
       const mergedStyles = {};
       const style = customStyleMap[styleName];
 
@@ -138,12 +141,18 @@ class DraftEditorLeaf extends React.Component {
         style !== undefined &&
         map.textDecoration !== style.textDecoration
       ) {
+        // .trim() is necessary for IE9/10/11 and Edge
         mergedStyles.textDecoration =
-          [map.textDecoration, style.textDecoration].join(' ');
+          [map.textDecoration, style.textDecoration].join(' ').trim();
       }
 
       return Object.assign(map, style, mergedStyles);
     }, {});
+
+    if (customStyleFn) {
+      const newStyles = customStyleFn(styleSet);
+      styleObj = Object.assign(styleObj, newStyles);
+    }
 
     return (
       <span

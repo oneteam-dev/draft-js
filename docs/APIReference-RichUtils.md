@@ -37,7 +37,7 @@ getCurrentBlockType(
 handleKeyCommand(
   editorState: EditorState,
   command: string
-): boolean
+): ?EditorState
 ```
 
 ### insertSoftNewline
@@ -120,5 +120,5 @@ toggleLink(
 ```
 tryToRemoveBlockStyle(
   editorState: EditorState
-): EditorState?
+): ContentState?
 ```

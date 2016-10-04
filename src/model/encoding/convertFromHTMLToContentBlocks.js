@@ -15,6 +15,7 @@
 
 const CharacterMetadata = require('CharacterMetadata');
 const ContentBlock = require('ContentBlock');
+const DefaultDraftBlockRenderMap = require('DefaultDraftBlockRenderMap');
 const DraftEntity = require('DraftEntity');
 const Immutable = require('immutable');
 const URI = require('URI');
@@ -25,6 +26,7 @@ const invariant = require('invariant');
 const nullthrows = require('nullthrows');
 const sanitizeDraftText = require('sanitizeDraftText');
 
+import type {DraftBlockRenderMap} from 'DraftBlockRenderMap';
 import type {DraftBlockType} from 'DraftBlockType';
 import type {DraftInlineStyle} from 'DraftInlineStyle';
 
@@ -43,10 +45,15 @@ var MAX_DEPTH = 4;
 var REGEX_CR = new RegExp('\r', 'g');
 var REGEX_LF = new RegExp('\n', 'g');
 var REGEX_NBSP = new RegExp(NBSP, 'g');
+var REGEX_CARRIAGE = new RegExp('&#13;?', 'g');
+var REGEX_ZWS = new RegExp('&#8203;?', 'g');
+
+// https://developer.mozilla.org/en-US/docs/Web/CSS/font-weight
+const boldValues = ['bold', 'bolder', '500', '600', '700', '800', '900'];
+const notBoldValues = ['light', 'lighter', '100', '200', '300', '400'];
 
 // Block tag flow is different because LIs do not have
 // a deterministic style ;_;
-var blockTags = ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'li', 'blockquote', 'pre', 'div'];
 var inlineTags = {
   b: 'BOLD',
   code: 'CODE',
@@ -58,54 +65,27 @@ var inlineTags = {
   strong: 'BOLD',
   u: 'UNDERLINE',
 };
-var MEDIA = {
-  img: 'IMAGE',
-  video: 'VIDEO',
-  audio: 'AUDIO'
-};
-var IFRAME = 'IFRAME';
 
-// https://github.com/quilljs/quill/
-var OLD_COLORS = [
-  'rgb(0, 0, 0)', 'rgb(230, 0, 0)', 'rgb(255, 153, 0)', 'rgb(255, 255, 0)',
-  'rgb(0, 138, 0)', 'rgb(0, 102, 204)', 'rgb(153, 51, 255)', 'rgb(255, 255, 255)',
-  'rgb(250, 204, 204)', 'rgb(255, 235, 204)', 'rgb(255, 255, 204)', 'rgb(204, 232, 204)',
-  'rgb(204, 224, 245)', 'rgb(235, 214, 255)', 'rgb(187, 187, 187)', 'rgb(240, 102, 102)',
-  'rgb(255, 194, 102)', 'rgb(255, 255, 102)', 'rgb(102, 185, 102)', 'rgb(102, 163, 224)',
-  'rgb(194, 133, 255)', 'rgb(136, 136, 136)', 'rgb(161, 0, 0)', 'rgb(178, 107, 0)',
-  'rgb(178, 178, 0)', 'rgb(0, 97, 0)', 'rgb(0, 71, 178)', 'rgb(107, 36, 178)',
-  'rgb(68, 68, 68)', 'rgb(92, 0, 0)', 'rgb(102, 61, 0)', 'rgb(102, 102, 0)',
-  'rgb(0, 55, 0)', 'rgb(0, 41, 102)', 'rgb(61, 20, 10)',
+var anchorAttr = [
+  'className',
+  'href',
+  'rel',
+  'target',
+  'title',
 ];
-var OLD_INLINE_STYLES_SIZE = {
-  SIZE_NORMAL: { fontSize: 13 },
-  SIZE_SMALLER: { fontSize: 10 },
-  SIZE_LARGER: { fontSize: 24 },
-  SIZE_HUGE: { fontSize: 32 },
-};
-var OLD_INLINE_STYLES = OLD_COLORS.reduce((result, color, i) => {
-  result[`COLOR${i}`] = { color };
-  result[`BACKGROUND_COLOR${i}`] = { backgroundColor: color };
-  return result;
-}, OLD_INLINE_STYLES_SIZE);
-var OLD_BLOCK_TYPES = {
-  ALIGN_CENTER: 'align-center',
-  ALIGN_RIGHT: 'align-right',
-  ALIGN_JUSTIFY: 'align-justify',
-};
 
 var lastBlock;
 
 type Block = {
-  type: DraftBlockType;
-  depth: number;
+  type: DraftBlockType,
+  depth: number,
 };
 
 type Chunk = {
-  text: string;
-  inlines: Array<DraftInlineStyle>;
-  entities: Array<string>;
-  blocks: Array<Block>;
+  text: string,
+  inlines: Array<DraftInlineStyle>,
+  entities: Array<string>,
+  blocks: Array<Block>,
 };
 
 function getEmptyChunk(): Chunk {
@@ -139,14 +119,8 @@ function getSoftNewlineChunk(): Chunk {
   };
 }
 
-function hasInputTypeCheckbox(node: ?Node): boolean {
-  if (!node || !node.children) { return false; }
-  return node.children[0].tagName.toLowerCase() === 'input' &&
-    node.children[0].type === 'checkbox';
-}
-
-function getBlockDividerChunk(block: DraftBlockType, depth: number, node: ?Node): Chunk {
-  var chunk = {
+function getBlockDividerChunk(block: DraftBlockType, depth: number): Chunk {
+  return {
     text: '\r',
     inlines: [OrderedSet()],
     entities: new Array(1),
@@ -155,61 +129,72 @@ function getBlockDividerChunk(block: DraftBlockType, depth: number, node: ?Node)
       depth: Math.max(0, Math.min(MAX_DEPTH, depth)),
     }],
   };
-  if (block === 'checkable-list-item' && hasInputTypeCheckbox(node)) {
-    chunk.blocks[0].checked = !!node.children[0].checked;
-  }
-  return chunk;
 }
 
-function getBlockTypeForTag(tag: string, lastList: ?string, node: ?Node): DraftBlockType {
-  switch (tag) {
-    case 'h1':
-      return 'header-one';
-    case 'h2':
-      return 'header-two';
-    case 'h3':
-      return 'header-three';
-    case 'h4':
-      return 'header-four';
-    case 'h5':
-      return 'header-five';
-    case 'h6':
-      return 'header-six';
-    case 'li':
-      if (lastList === 'ol') {
-        return 'ordered-list-item';
-      }
-      if (node && node.classList.contains('task-list-item')) {
-        return 'checkable-list-item';
-      }
-      return 'unordered-list-item';
-    case 'blockquote':
-      return 'blockquote';
-    case 'pre':
-      return 'code-block';
-    case 'div':
-      if (node && node.style.textAlign === 'center') {
-        return OLD_BLOCK_TYPES.ALIGN_CENTER;
-      } else if (node && node.style.textAlign === 'right') {
-        return OLD_BLOCK_TYPES.ALIGN_RIGHT;
-      } else if (node && node.style.textAlign === 'justify') {
-        return OLD_BLOCK_TYPES.ALIGN_JUSTIFY;
-      } else {
-        return 'unstyled';
-      }
-    default:
+function getListBlockType(
+  tag: string,
+  lastList: ?string
+): ?DraftBlockType {
+  if (tag === 'li') {
+    return lastList === 'ol' ? 'ordered-list-item' : 'unordered-list-item';
+  }
+  return null;
+}
+
+function getBlockMapSupportedTags(
+  blockRenderMap: DraftBlockRenderMap
+): Array<string> {
+  const unstyledElement = blockRenderMap.get('unstyled').element;
+  return blockRenderMap
+    .map((config) => config.element)
+    .valueSeq()
+    .toSet()
+    .filter((tag) => tag && tag !== unstyledElement)
+    .toArray()
+    .sort();
+}
+
+// custom element conversions
+function getMultiMatchedType(
+  tag: string,
+  lastList: ?string,
+  multiMatchExtractor: Array<Function>
+): ?DraftBlockType {
+  for (let ii = 0; ii < multiMatchExtractor.length; ii++) {
+    const matchType = multiMatchExtractor[ii](tag, lastList);
+    if (matchType) {
+      return matchType;
+    }
+  }
+  return null;
+}
+
+function getBlockTypeForTag(
+  tag: string,
+  lastList: ?string,
+  blockRenderMap: DraftBlockRenderMap
+): DraftBlockType {
+  const matchedTypes = blockRenderMap
+    .filter((config) => config.element === tag || config.wrapper === tag)
+    .keySeq()
+    .toSet()
+    .toArray()
+    .sort();
+
+  // if we dont have any matched type, return unstyled
+  // if we have one matched type return it
+  // if we have multi matched types use the multi-match function to gather type
+  switch (matchedTypes.length) {
+    case 0:
       return 'unstyled';
+    case 1:
+      return matchedTypes[0];
+    default:
+      return (
+        getMultiMatchedType(tag, lastList, [getListBlockType]) ||
+        'unstyled'
+      );
   }
-}
-
-function hasOldStyleFontSize(node: Node): boolean {
-  return Object.keys(OLD_INLINE_STYLES_SIZE).some(label => (
-    OLD_INLINE_STYLES_SIZE[label].fontSize === parseInt(node.style.fontSize, 10)
-  ));
-}
-
-function hasOldStyleColor(node: Node, prop: string): boolean {
-  return OLD_COLORS.some(color => color === node.style[prop]);
 }
 
 function processInlineTag(
@@ -223,41 +208,31 @@ function processInlineTag(
   } else if (node instanceof HTMLElement) {
     const htmlElement = node;
     currentStyle = currentStyle.withMutations(style => {
-      if (htmlElement.style.fontWeight === 'bold') {
+      const fontWeight = htmlElement.style.fontWeight;
+      const fontStyle = htmlElement.style.fontStyle;
+      const textDecoration = htmlElement.style.textDecoration;
+
+      if (boldValues.indexOf(fontWeight) >= 0) {
         style.add('BOLD');
+      } else if (notBoldValues.indexOf(fontWeight) >= 0) {
+        style.remove('BOLD');
       }
 
-      if (htmlElement.style.fontStyle === 'italic') {
+      if (fontStyle === 'italic') {
         style.add('ITALIC');
+      } else if (fontStyle === 'normal') {
+        style.remove('ITALIC');
       }
 
-      if (htmlElement.style.textDecoration === 'underline') {
+      if (textDecoration === 'underline') {
         style.add('UNDERLINE');
       }
-
-      if (htmlElement.style.textDecoration === 'line-through') {
+      if (textDecoration === 'line-through') {
         style.add('STRIKETHROUGH');
       }
-
-      if (hasOldStyleColor(htmlElement, 'color')) {
-        const styleLabel = Object.keys(OLD_INLINE_STYLES).filter(label => (
-          OLD_INLINE_STYLES[label].color === htmlElement.style.color
-        ))[0];
-        style.add(styleLabel);
-      }
-
-      if (hasOldStyleColor(htmlElement, 'backgroundColor')) {
-        const styleLabel = Object.keys(OLD_INLINE_STYLES).filter(label => (
-          OLD_INLINE_STYLES[label].backgroundColor === htmlElement.style.backgroundColor
-        ))[0];
-        style.add(styleLabel);
-      }
-
-      if (hasOldStyleFontSize(htmlElement)) {
-        const styleLabel = Object.keys(OLD_INLINE_STYLES_SIZE).filter(label => (
-          OLD_INLINE_STYLES_SIZE[label].fontSize === parseInt(htmlElement.style.fontSize, 10)
-        ))[0];
-        style.add(styleLabel);
+      if (textDecoration === 'none') {
+        style.remove('UNDERLINE');
+        style.remove('STRIKETHROUGH');
       }
     }).toOrderedSet();
   }
@@ -267,11 +242,12 @@ function processInlineTag(
 function joinChunks(A: Chunk, B: Chunk): Chunk {
   // Sometimes two blocks will touch in the DOM and we need to strip the
   // extra delimiter to preserve niceness.
-  var lastInB = B.text.slice(0, 1);
+  var lastInA = A.text.slice(-1);
+  var firstInB = B.text.slice(0, 1);
 
   if (
-    A.text.slice(-1) === '\r' &&
-    lastInB === '\r'
+    lastInA === '\r' &&
+    firstInB === '\r'
   ) {
     A.text = A.text.slice(0, -1);
     A.inlines.pop();
@@ -281,13 +257,11 @@ function joinChunks(A: Chunk, B: Chunk): Chunk {
 
   // Kill whitespace after blocks
   if (
-    A.text.slice(-1) === '\r'
+    lastInA === '\r'
   ) {
-    if (B.text === SPACE) {
+    if (B.text === SPACE || B.text === '\n') {
       return A;
-    } else if (B.text === '\n' && A.text === '\r') {
-      return B;
-    } else if (lastInB === SPACE || lastInB === '\n') {
+    } else if (firstInB === SPACE || firstInB === '\n') {
       B.text = B.text.slice(1);
       B.inlines.shift();
       B.entities.shift();
@@ -307,7 +281,10 @@ function joinChunks(A: Chunk, B: Chunk): Chunk {
  * block tags from. If we do, we can use those and ignore <div> tags. If we
  * don't, we can treat <div> tags as meaningful (unstyled) blocks.
  */
-function containsSemanticBlockMarkup(html: string): boolean {
+function containsSemanticBlockMarkup(
+  html: string,
+  blockTags: Array<string>
+): boolean {
   return blockTags.some(tag => html.indexOf('<' + tag) !== -1);
 }
 
@@ -317,22 +294,11 @@ function hasValidLinkText(link: Node): boolean {
     'Link must be an HTMLAnchorElement.'
   );
   var protocol = link.protocol;
-  return protocol === 'http:' || protocol === 'https:';
-}
-
-function getAttributes(node: Node): Object {
-  return [].reduce.call(node.attributes, (result, { nodeName, nodeValue }) => {
-    result[nodeName] = nodeValue;
-    return result;
-  }, {});
-}
-
-function isTextAndHrefSameValue(node: Node): boolean {
-  return node.getAttribute('href') === node.innerText;
-}
-
-function shouldCreateLinkEntity(nodeName: String, child: Node): boolean {
-  return nodeName === 'a' && child.href && hasValidLinkText(child) && !isTextAndHrefSameValue(child);
+  return (
+    protocol === 'http:' ||
+    protocol === 'https:' ||
+    protocol === 'mailto:'
+  );
 }
 
 function genFragment(
@@ -342,6 +308,7 @@ function genFragment(
   inBlock: ?string,
   blockTags: Array<string>,
   depth: number,
+  blockRenderMap: DraftBlockRenderMap,
   inEntity?: string
 ): Chunk {
   var nodeName = node.nodeName.toLowerCase();
@@ -371,50 +338,17 @@ function genFragment(
     };
   }
 
-  if (Object.keys(MEDIA).some(k => k === nodeName)) {
-    var entityKey = DraftEntity.create(MEDIA[nodeName], 'IMMUTABLE', {
-      src: node.src,
-      alt: node.alt,
-      'data-original-url': node.parentNode.getAttribute('href')
-    });
-    return {
-      text: '\r \r',
-      inlines: Array(3).fill(inlineStyle),
-      entities: Array(3).fill(entityKey),
-      blocks: [{
-        type: 'atomic',
-        depth
-      }, {
-        type: 'unstyled',
-        depth
-      }]
-    };
-  }
-
-  if (nodeName === 'iframe') {
-    var entityKey = DraftEntity.create(IFRAME, 'IMMUTABLE', getAttributes(node));
-    return {
-      text: '\r \r',
-      inlines: Array(3).fill(inlineStyle),
-      entities: Array(3).fill(entityKey),
-      blocks: [{
-        type: 'atomic',
-        depth
-      }, {
-        type: 'unstyled',
-        depth
-      }]
-    };
-  }
-
   // save the last block so we can use it later
   lastBlock = nodeName;
 
   // BR tags
   if (nodeName === 'br') {
     if (
-        lastLastBlock === 'br' &&
-        (!inBlock || getBlockTypeForTag(inBlock, lastList, node) === 'unstyled')
+      lastLastBlock === 'br' &&
+      (
+        !inBlock ||
+        getBlockTypeForTag(inBlock, lastList, blockRenderMap) === 'unstyled'
+      )
     ) {
       return getBlockDividerChunk('unstyled', depth);
     }
@@ -438,29 +372,21 @@ function genFragment(
   // Block Tags
   if (!inBlock && blockTags.indexOf(nodeName) !== -1) {
     chunk = getBlockDividerChunk(
-      getBlockTypeForTag(nodeName, lastList, node),
-      depth,
-      node
+      getBlockTypeForTag(nodeName, lastList, blockRenderMap),
+      depth
     );
     inBlock = nodeName;
     newBlock = true;
   } else if (lastList && inBlock === 'li' && nodeName === 'li') {
     chunk = getBlockDividerChunk(
-      getBlockTypeForTag(nodeName, lastList, node),
-      depth,
-      node
+      getBlockTypeForTag(nodeName, lastList, blockRenderMap),
+      depth
     );
     inBlock = nodeName;
     newBlock = true;
-    if (lastList === 'ul') {
-      if (node.classList.contains('task-list-item')) {
-        nextBlockType = 'checkable-list-item';
-      } else {
-        nextBlockType = 'unordered-list-item';
-      }
-    } else {
-      nextBlockType = 'ordered-list-item';
-    }
+    nextBlockType = lastList === 'ul' ?
+      'unordered-list-item' :
+      'ordered-list-item';
   }
 
   // Recurse through children
@@ -470,20 +396,26 @@ function genFragment(
   }
 
   var entityId: ?string = null;
-  var href: ?string = null;
 
   while (child) {
-    if (shouldCreateLinkEntity(nodeName, child)) {
-      href = new URI(child.href).toString();
-      if (child.hasAttribute('download')) {
-        entityId = DraftEntity.create('DOWNLOAD_LINK', 'MUTABLE', {
-          url: href,
-          name: child.getAttribute('data-name'),
-          size: child.getAttribute('data-size')
-        });
-      } else {
-        entityId = DraftEntity.create('LINK', 'MUTABLE', { url: href });
-      }
+    if (
+      child instanceof HTMLAnchorElement &&
+      child.href &&
+      hasValidLinkText(child)
+    ) {
+      const anchor: HTMLAnchorElement = child;
+      const entityConfig = {};
+
+      anchorAttr.forEach((attr) => {
+        const anchorAttribute = anchor.getAttribute(attr);
+        if (anchorAttribute) {
+          entityConfig[attr] = anchorAttribute;
+        }
+      });
+
+      entityConfig.url = new URI(anchor.href).toString();
+
+      entityId = DraftEntity.create('LINK', 'MUTABLE', entityConfig);
     } else {
       entityId = undefined;
     }
@@ -495,11 +427,12 @@ function genFragment(
       inBlock,
       blockTags,
       depth,
+      blockRenderMap,
       entityId || inEntity
     );
 
     chunk = joinChunks(chunk, newChunk);
-    var sibling: Node = child.nextSibling;
+    var sibling: ?Node = child.nextSibling;
 
     // Put in a newline to break up blocks inside blocks
     if (
@@ -525,11 +458,19 @@ function genFragment(
   return chunk;
 }
 
-function getChunkForHTML(html: string, DOMBuilder: Function): ?Chunk {
+function getChunkForHTML(
+  html: string,
+  DOMBuilder: Function,
+  blockRenderMap: DraftBlockRenderMap
+): ?Chunk {
   html = html
     .trim()
     .replace(REGEX_CR, '')
-    .replace(REGEX_NBSP, SPACE);
+    .replace(REGEX_NBSP, SPACE)
+    .replace(REGEX_CARRIAGE, '')
+    .replace(REGEX_ZWS, '');
+
+  const supportedBlockTags = getBlockMapSupportedTags(blockRenderMap);
 
   var safeBody = DOMBuilder(html);
   if (!safeBody) {
@@ -540,12 +481,22 @@ function getChunkForHTML(html: string, DOMBuilder: Function): ?Chunk {
   // Sometimes we aren't dealing with content that contains nice semantic
   // tags. In this case, use divs to separate everything out into paragraphs
   // and hope for the best.
-  var workingBlocks = containsSemanticBlockMarkup(html) ? blockTags : ['div'];
+  var workingBlocks = containsSemanticBlockMarkup(html, supportedBlockTags) ?
+    supportedBlockTags :
+    ['div'];
 
   // Start with -1 block depth to offset the fact that we are passing in a fake
   // UL block to start with.
-  var chunk =
-    genFragment(safeBody, OrderedSet(), 'ul', null, workingBlocks, -1);
+  var chunk = genFragment(
+    safeBody,
+    OrderedSet(),
+    'ul',
+    null,
+    workingBlocks,
+    -1,
+    blockRenderMap
+  );
+
 
   // join with previous block to prevent weirdness on paste
   if (chunk.text.indexOf('\r') === 0) {
@@ -583,12 +534,14 @@ function getChunkForHTML(html: string, DOMBuilder: Function): ?Chunk {
 function convertFromHTMLtoContentBlocks(
   html: string,
   DOMBuilder: Function = getSafeBodyFromHTML,
+  blockRenderMap?: DraftBlockRenderMap = DefaultDraftBlockRenderMap,
 ): ?Array<ContentBlock> {
-  // Be ABSOLUTELY SURE that the dom builder you pass hare won't execute
+  // Be ABSOLUTELY SURE that the dom builder you pass here won't execute
   // arbitrary code in whatever environment you're running this in. For an
   // example of how we try to do this in-browser, see getSafeBodyFromHTML.
 
-  var chunk = getChunkForHTML(html, DOMBuilder);
+  var chunk = getChunkForHTML(html, DOMBuilder, blockRenderMap);
+
   if (chunk == null) {
     return null;
   }
@@ -615,7 +568,6 @@ function convertFromHTMLtoContentBlocks(
         key: generateRandomKey(),
         type: nullthrows(chunk).blocks[ii].type,
         depth: nullthrows(chunk).blocks[ii].depth,
-        checked: nullthrows(chunk).blocks[ii].checked,
         text: textBlock,
         characterList,
       });
