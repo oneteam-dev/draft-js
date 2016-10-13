@@ -13,7 +13,7 @@
 
 'use strict';
 
-var Immutable = require('immutable');
+// var Immutable = require('immutable');
 
 var generateRandomKey = require('./generateRandomKey');
 var invariant = require('fbjs/lib/invariant');
@@ -21,7 +21,7 @@ var invariant = require('fbjs/lib/invariant');
 import type ContentState from './ContentState';
 import type SelectionState from './SelectionState';
 
-const { Map } = Immutable;
+// const {Map} = Immutable;
 
 function splitBlockInContentState(contentState: ContentState, selectionState: SelectionState): ContentState {
   invariant(selectionState.isCollapsed(), 'Selection range must be collapsed.');
@@ -44,7 +44,8 @@ function splitBlockInContentState(contentState: ContentState, selectionState: Se
     key: keyBelow,
     text: text.slice(offset),
     characterList: chars.slice(offset),
-    data: Map()
+    // data: Map(),
+    data: blockToSplit.getData()
   });
 
   var blocksBefore = blockMap.toSeq().takeUntil(v => v === blockToSplit);
