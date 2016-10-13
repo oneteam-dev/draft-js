@@ -10753,13 +10753,12 @@ var Draft =
 
 	'use strict';
 
-	var Immutable = __webpack_require__(2);
+	// var Immutable = require('immutable');
 
 	var generateRandomKey = __webpack_require__(7);
 	var invariant = __webpack_require__(3);
 
-	var Map = Immutable.Map;
-
+	// const {Map} = Immutable;
 
 	function splitBlockInContentState(contentState, selectionState) {
 	  !selectionState.isCollapsed() ?  true ? invariant(false, 'Selection range must be collapsed.') : invariant(false) : void 0;
@@ -10782,7 +10781,8 @@ var Draft =
 	    key: keyBelow,
 	    text: text.slice(offset),
 	    characterList: chars.slice(offset),
-	    data: Map()
+	    // data: Map(),
+	    data: blockToSplit.getData()
 	  });
 
 	  var blocksBefore = blockMap.toSeq().takeUntil(function (v) {
