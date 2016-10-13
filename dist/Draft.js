@@ -1,5 +1,5 @@
 /**
- * Draft v0.9.1
+ * Draft v0.1.1-oneteam
  *
  * Copyright (c) 2013-present, Facebook, Inc.
  * All rights reserved.
@@ -10753,12 +10753,13 @@ var Draft =
 
 	'use strict';
 
-	// var Immutable = require('immutable');
+	var Immutable = __webpack_require__(2);
 
 	var generateRandomKey = __webpack_require__(7);
 	var invariant = __webpack_require__(3);
 
-	// const {Map} = Immutable;
+	var Map = Immutable.Map;
+
 
 	function splitBlockInContentState(contentState, selectionState) {
 	  !selectionState.isCollapsed() ?  true ? invariant(false, 'Selection range must be collapsed.') : invariant(false) : void 0;
@@ -10781,8 +10782,7 @@ var Draft =
 	    key: keyBelow,
 	    text: text.slice(offset),
 	    characterList: chars.slice(offset),
-	    // data: Map(),
-	    data: blockToSplit.getData()
+	    data: Map()
 	  });
 
 	  var blocksBefore = blockMap.toSeq().takeUntil(function (v) {
